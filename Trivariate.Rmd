@@ -1,0 +1,254 @@
+---
+title: "PS3"
+output: pdf_document
+author:Saniya Ambavanekar
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+
+```{r}
+library(NHANES)
+library(ggplot2)
+men_data=subset(NHANES,NHANES$Gender=="male")
+women_data=subset(NHANES,NHANES$Gender=="female")
+
+```
+
+Observing the trend of systolic blood pressure with the age of men
+```{r}
+Age_men_data=men_data[c("Age","BPSysAve")]
+Age_men_data=na.omit(Age_men_data)
+
+Age_women_data=women_data[c("Age","BPSysAve")]
+Age_women_data=na.omit(Age_women_data)
+```
+
+Observing the trend by fitting curve using the loess method
+```{r}
+Age_men.gg=ggplot(Age_men_data,aes(x=Age_men_data$Age,y=Age_men_data$BPSysAve))+geom_point()
+Age_men.gg+geom_smooth(method="loess")
+```
+
+Observing the trend with straight line fit.
+```{r}
+Age_men.gg=ggplot(Age_men_data,aes(x=Age_men_data$Age,y=Age_men_data$BPSysAve))+geom_point()
+Age_men.gg+geom_smooth(method="lm")
+```
+
+Oberving the loess fit and lm fit for the age of women
+
+loess fit
+```{r}
+Age_women.gg=ggplot(Age_women_data,aes(x=Age_women_data$Age,y=Age_women_data$BPSysAve))+geom_point()
+Age_women.gg+geom_smooth(method="loess")
+```
+
+lm fit 
+```{r}
+Age_women.gg=ggplot(Age_women_data,aes(x=Age_women_data$Age,y=Age_women_data$BPSysAve))+geom_point()
+Age_women.gg+geom_smooth(method="lm")
+```
+
+Plotting the residuals against the explanatory variable to check clear trends for age of men
+```{r}
+library(broom)
+age_men.lm=lm(Age_men_data$BPSysAve~Age_men_data$Age, data=Age_men_data)
+age_men.lm.df=augment(age_men.lm)
+#summary(age_men.lm.df)
+ggplot(age_men.lm.df,aes(x=age_men.lm.df$Age_men_data.Age+runif(nrow(age_men.lm.df),min= -0.5,max=0.5),y=age_men.lm.df$.resid+runif(nrow(age_men.lm.df),min= -0.5,max=0.5)))+geom_point(size=0.2,alpha=0.9)+geom_smooth(method="lm")+geom_abline(slope = 0, intercept = 0)
+```
+plotting age of men with loess fit
+
+```{r}
+age_men.leoss=loess(Age_men_data$BPSysAve~Age_men_data$Age,data=Age_men_data)
+age_men.leoss.df=augment(age_men.leoss)
+#summary(age_men.leoss.df)
+ggplot(age_men.leoss.df,aes(x=age_men.leoss.df$Age_men_data.Age,y=age_men.leoss.df$.resid))+geom_point(size=0.2,alpha=0.9)+geom_smooth(method="loess")+geom_abline(slope=0, intercept=0)
+```
+
+
+plotting homoscedastity Age_men
+
+spread_location plot
+
+```{r}
+ggplot(age_men.leoss.df,aes(x=age_men.leoss.df$.fitted,y=sqrt(abs(age_men.leoss.df$.resid))))+geom_point(size=0.2,alpha=0.9)+geom_smooth(method="loess")
+
+```
+
+
+plotting the lm fit for explanatory variable vs residuals for age of women
+```{r}
+age_women.lm=lm(Age_women_data$BPSysAve~Age_women_data$Age)
+age_women.lm.df=augment(age_women.lm)
+#summary(age_women.lm.df)
+ggplot(age_women.lm.df,aes(x=age_women.lm.df$Age_women_data.Age,y=age_women.lm.df$.resid))+
+  geom_point(size=0.2,alpha=0.9)+geom_smooth(method="lm")+geom_abline(slope=0,intercept=0)
+```
+
+plotting the loess fit for explanatory variable vs residuals for age of women
+```{r}
+age_women.leoss=loess(Age_women_data$BPSysAve~Age_women_data$Age,data=Age_women_data)
+age_women.leoss.df=augment(age_women.leoss)
+#summary(age_men.leoss.df)
+ggplot(age_women.leoss.df,aes(x=age_women.leoss.df$Age_women_data.Age,y=age_women.leoss.df$.resid))+geom_point(size=0.2,alpha=0.9)+geom_smooth(method="loess")+geom_abline(slope=0, intercept=0)
+
+```
+
+Comparing the loess fit together for men and women for appropriate comparison
+```{r}
+men_women_data=NHANES[c("Age","BPSysAve","Gender")]
+men_women_data=na.omit(men_women_data)
+ggplot(men_women_data,aes(x=men_women_data$Age,y=men_women_data$BPSysAve,group=men_women_data$Gender,color=men_women_data$Gender))+geom_point(size=0.2,alpha=0.9)+geom_smooth(method="loess",method.args=list(degree=1))
+```
+
+R2 for men and women Age 
+```{r}
+
+```
+
+
+Section 2 Height 
+
+```{r}
+ht_men=subset(NHANES,Gender=="male")
+ht_women=subset(NHANES,Gender=="female")
+ht_men_data=ht_men[c("Height","BPSysAve")]
+ht_men_data=na.omit(ht_men_data)
+ht_women_data=ht_women[c("Height","BPSysAve")]
+ht_women_data=na.omit(ht_women_data)
+```
+
+Loess fit for ht of men with the residuals
+```{r}
+ht_men.loess=loess(ht_men_data$BPSysAve~ht_men_data$Height,data=ht_men_data)
+ht_men.loess.df=augment(ht_men.loess)
+#summary(ht_men.loess.df)
+ggplot(ht_men.loess.df,aes(x=ht_men.loess.df$ht_men_data.Height,y=ht_men.loess.df$.resid))+geom_point(size=0.2,alpha=0.9)+geom_smooth(method="loess")+geom_abline(slope=0,intercept=0)+xlab("Height of men")+ylab("Residuals")
+```
+
+loess fit ht of women with residuals
+```{r}
+ht_women.loess=loess(ht_women_data$BPSysAve~ht_women_data$Height,data=ht_women_data)
+ht_women.loess.df=augment(ht_women.loess)
+#summary(ht_men.loess.df)
+ggplot(ht_women.loess.df,aes(x=ht_women.loess.df$ht_women_data.Height,y=ht_women.loess.df$.resid))+geom_point(size=0.2,alpha=0.9)+geom_smooth(method="loess")+geom_abline(slope=0,intercept=0)+xlab("Height of women")+ylab("Residual")
+```
+
+Comparing lm fit residuals for women height
+```{r}
+ht_women.lm=lm(ht_women_data$BPSysAve~ht_women_data$Height,data=ht_women_data)
+ht_women.lm.df=augment(ht_women.lm)
+#summary(ht_men.loess.df)
+ggplot(ht_women.lm.df,aes(x=ht_women.lm.df$ht_women_data.Height,y=ht_women.lm.df$.resid))+geom_point(size=0.2,alpha=0.9)+geom_smooth(method="lm")+geom_abline(slope=0,intercept=0)+xlab("Height of women")+ylab("Residual")
+```
+Comparing the quadratic fit for the ht of women 
+```{r}
+ht_women.lm=lm(ht_women_data$BPSysAve~ ht_women_data$Height+I(ht_women_data$Height^2),data=ht_women_data)
+ht_women.lm.df=augment(ht_women.lm)
+#summary(ht_men.loess.df)
+ggplot(ht_women.lm.df,aes(x=ht_women.lm.df$ht_women_data.Height,y=ht_women.lm.df$.resid))+geom_point(size=0.2,alpha=0.9)+geom_smooth(method="lm")+geom_abline(slope=0,intercept=0)+xlab("Height of women")+ylab("Residual")
+
+```
+
+
+```{r}
+var(ht_women.lm.df$.fitted)/var(ht_women.lm.df$ht_women_data.BPSysAve)
+var(ht_women.loess.df$.fitted)/var(ht_women.loess.df$ht_women_data.BPSysAve)
+var(ht_men.loess.df$.fitted)/var(ht_men.loess.df$ht_men_data.BPSysAve)
+```
+
+Comparison between the men and women height
+```{r}
+men_women_ht=NHANES[c("Height","BPSysAve","Gender")]
+men_women_ht=na.omit(men_women_ht)
+ggplot(men_women_ht,aes(x=men_women_ht$Height,y=men_women_ht$BPSysAve,group=men_women_ht$Gender,color=men_women_ht$Gender))+geom_point(size=0.2,alpha=0.9)+geom_smooth(method="loess",method.args=list(degree=1))
+
+```
+
+Ploting the loess plot for the Weight of men
+
+```{r}
+men_wt=subset(NHANES,Gender=="male")
+women_wt=subset(NHANES,Gender=="female")
+men_wt_data=men_wt[c("Weight","BPSysAve")]
+men_wt_data=na.omit(men_wt_data)
+women_wt_data=women_wt[c("Weight","BPSysAve")]
+women_wt_data=na.omit(women_wt_data)
+```
+
+Plotting residuals against weight of men loess fit
+```{r}
+men_wt.loess=loess(men_wt_data$BPSysAve~men_wt_data$Weight,data=men_wt_data)
+men_wt.loess.df=augment(men_wt.loess)
+#summary(men_wt.loess.df)
+ggplot(men_wt.loess.df,aes(x=men_wt.loess.df$men_wt_data.Weight,y=men_wt.loess.df$.resid))+geom_point(size=0.2,alpha=0.9)+geom_smooth(method="loess",method.args=list(degree=1))+geom_abline(slope=0,intercept = 0)
+```
+
+Ploting residuals against weight of women loess fit
+```{r}
+women_wt.loess=loess(women_wt_data$BPSysAve~women_wt_data$Weight,data=women_wt_data,family = "symmetric",degree=1)
+women_wt.loess.df=augment(women_wt.loess)
+ggplot(women_wt.loess.df,aes(x=women_wt.loess.df$women_wt_data.Weight,y=women_wt.loess.df$.resid))+geom_point(size=0.2,alpha=0.9)+geom_smooth(method="loess",method.args=list(degree=1))+geom_abline(slope=0,intercept = 0)
+```
+
+Plotting weights of men and women for comaprison
+```{r}
+men_women_wt=NHANES[c("Weight","BPSysAve","Gender")]
+men_women_wt=na.omit(men_women_wt)
+ggplot(men_women_wt,aes(x=men_women_wt$Weight,y=men_women_wt$BPSysAve,group=men_women_wt$Gender,color=men_women_wt$Gender))+geom_point(size=0.2,alpha=0.9)+geom_smooth(method="loess",method.args=list(degree=1))
+```
+```{r}
+var(women_wt.loess.df$.fitted)/var(women_wt.loess.df$women_wt_data.BPSysAve)
+var(men_wt.loess.df$.fitted)/var(men_wt.loess.df$men_wt_data.BPSysAve)
+
+```
+
+lm fit for men
+```{r}
+men_wt.lm=lm(men_wt_data$BPSysAve~men_wt_data$Weight,data=men_wt_data)
+men_wt.lm.df=augment(men_wt.lm)
+#summary(men_wt.loess.df)
+ggplot(men_wt.lm.df,aes(x=men_wt.lm.df$men_wt_data.Weight,y=men_wt.lm.df$.resid))+geom_point(size=0.2,alpha=0.9)+geom_smooth(method="lm",method.args=list(degree=1))+geom_abline(slope=0,intercept = 0)
+
+```
+
+lm fit for weight of women
+```{r}
+women_wt.lm=lm(women_wt_data$BPSysAve~women_wt_data$Weight,data=women_wt_data)
+women_wt.lm.df=augment(women_wt.lm)
+#summary(men_wt.loess.df)
+ggplot(women_wt.lm.df,aes(x=women_wt.lm.df$women_wt_data.Weight,y=women_wt.lm.df$.resid))+geom_point(size=0.2,alpha=0.9)+geom_smooth(method="lm",method.args=list(degree=1))+geom_abline(slope=0,intercept = 0)
+
+```
+
+R2
+```{r}
+var(women_wt.lm.df$.fitted)/var(women_wt.lm.df$women_wt_data.BPSysAve)
+var(men_wt.lm.df$.fitted)/var(men_wt.lm.df$men_wt_data.BPSysAve)
+
+```
+
+
+Using cuberoot transform on independent variable
+```{r}
+men_ht_tr.loess=loess(ht_men_data$BPSysAve~I(ht_men_data$Height^(1/3)),data=ht_men_data,family="symmetric",degree=1)
+men_ht_tr.loess.df=augment(men_ht_tr.loess)
+#summary(men_ht_tr.loess.df)
+ggplot(men_ht_tr.loess.df,aes(x=men_ht_tr.loess.df$I.ht_men_data.Height..1.3..,y=men_ht_tr.loess.df$.resid))+geom_point(size=0.2,alpha=0.9)+geom_smooth(method="loess",method.args=list(degree=1))+geom_abline(slope=0,intercept = 0)
+var(men_ht_tr.loess.df$.fitted)/var(men_ht_tr.loess.df$ht_men_data.BPSysAve)
+```
+using the log transform for height of men vs residual
+```{r}
+men_ht_tr.loess=loess(ht_men_data$BPSysAve~lapply(ht_men_data$Height,function(x) log2(x)),data=ht_men_data,family="symmetric",degree=1)
+men_ht_tr.loess.df=augment(men_ht_tr.loess)
+#summary(men_ht_tr.loess.df)
+ggplot(men_ht_tr.loess.df,aes(x=men_ht_tr.loess.df$I.ht_men_data.Height..1.3..,y=men_ht_tr.loess.df$.resid))+geom_point(size=0.2,alpha=0.9)+geom_smooth(method="loess",method.args=list(degree=1))+geom_abline(slope=0,intercept = 0)
+var(men_ht_tr.loess.df$.fitted)/var(men_ht_tr.loess.df$ht_men_data.BPSysAve)
+```
