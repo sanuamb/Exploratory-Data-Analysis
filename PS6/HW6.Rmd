@@ -1,0 +1,50 @@
+---
+title: "Untitled"
+author: "Vatsal Jatakia"
+date: "March 22, 2018"
+output: pdf_document
+---
+
+```{r}
+library(ggplot2)
+library(MASS)
+barley = read.table("minnesota.txt",header = T)
+summary(barley)
+```
+
+#Q.1 #
+
+```{r,fig.width= 20, fig.height= 9}
+ggplot(barley, aes(year, yield, color = site))+geom_line()+facet_grid(~site)+ggtitle("Variation of Yield across Sites by Year")
+```
+
+For Crookston, the trend seems to be increasing until 1932 after which there is a steep decrease followed by another steep increase in 1934 again followed by a decrease. This trend is also observed in Duluth and  St.Paul (except that the increase was in 1935). For Waseca and Grand Rapids, the trend remains constant followed by a decrease in 1933 and 1932 respectively and then it slightly increases before becoming constant again. However, for Morris the trend is quite different with a combination of increases and decreases. Hence, the trend is quite different  for different sites. 
+
+#Q.2 #
+
+```{r}
+
+lm1 = rlm(yield~gen+year+site, barley, psi = psi.bisquare)
+summary(lm1)
+```
+
+The scatterplot of this yield vs year suggests a high number of outliers which strengthens my choice of the robust model. The other models like linear and loess were giving a relatively low r-square values as well. 
+
+
+#Q.3 
+
+```{r}
+library(broom)
+df1 = augment(lm1)
+
+ggplot(barley, aes(year, yield, color = site))+geom_point()+geom_smooth()
+
+```
+```{r}
+
+ggplot(df1, aes(x = year, y = .fitted, color = site))+geom_point()+geom_smooth()
+
+```
+
+Considering the Morris trend line from 1931 to 1932 in the above 2 plots, the plot for fitted values suggests a decrease in the trend, while the actual trend suggests an increase in the yield from 1931 to 1932. Due to these differences in observations, the opinion shifts towards the possibility of a mistake being committed while entering the data and that the yields in 1931 and 1932 might have been reversed. 
+  

@@ -1,0 +1,322 @@
+---
+title: "Obama to Trump"
+author: "Ashwed Patil, Vatsal Jatakia, Akshay Naik, Saniya Ambavanekar (Team San Diego)"
+date: "March 9, 2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, tidy = TRUE, message = FALSE)
+load("TrumpObama.RData")
+library(dplyr)
+library(ggplot2)
+
+# Question 0
+obama <- x[x$CC16_326 == 'Barack Obama' & is.na(x$CC16_326)== FALSE & x$tookpost == 'Yes' ,c('commonweight_vv_post', 'tookpost', 'gender', 'educ', 
+                'race', 'pid7', 'CC16_326', 'CC16_410a', 'CC16_331_1',
+                                           'CC16_331_2', 'CC16_331_3', 'CC16_331_7')]
+
+obama$votedTrump <- ifelse(obama$CC16_410a == 'Donald Trump (Republican)'& is.na(obama$CC16_410a) == FALSE, 1, 0)
+
+obama$race = recode(obama$race, "White"="White", "Black"="Black", "Hispanic"="Hispanic", .default = "Other" )
+
+obama$CC16_331_1 = recode(obama$CC16_331_1, "Yes"= 1, "No"= 0)
+obama$CC16_331_2 = recode(obama$CC16_331_2, "Yes"= 0, "No"= 1)
+obama$CC16_331_3 = recode(obama$CC16_331_3, "Yes"= 1, "No"= 0)
+obama$CC16_331_7 =recode(obama$CC16_331_7, "Yes"= 0, "No"= 1)
+
+obama$attitude <- obama$CC16_331_1+obama$CC16_331_2+obama$CC16_331_3+obama$CC16_331_7
+
+
+```
+
+##1. One Predictor##
+
+**Gender**
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, tidy = TRUE, message = FALSE)
+
+# For Gender
+Total.gender_prop <- obama  %>%  group_by(gender) %>% summarise(SUM = sum(commonweight_vv_post))
+gender_prop <- obama  %>% subset(votedTrump == 1) %>%   group_by(gender) %>% summarise(SUM = sum(commonweight_vv_post))
+
+gender_prop$SUM <- gender_prop$SUM/Total.gender_prop$SUM
+
+names(gender_prop) = c("Gender", "Proportion")
+``` 
+
+```{r echo = FALSE}
+gender_prop
+```
+
+**Education**
+```{r include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, tidy = TRUE, message = FALSE)
+
+# For Education
+Total.educ_prop <- obama  %>%  group_by(educ) %>% summarise(SUM = sum(commonweight_vv_post))
+educ_prop <- obama  %>% subset(votedTrump == 1) %>%   group_by(educ) %>% summarise(SUM = sum(commonweight_vv_post))
+
+educ_prop$SUM <- educ_prop$SUM/Total.educ_prop$SUM
+```
+
+```{r}
+print(educ_prop)
+names(educ_prop) = c("Education", "Proportion")
+```
+
+**Race**
+```{r include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, tidy = TRUE, message = FALSE)
+
+# For Race
+Total.race_prop <- obama  %>%  group_by(race) %>% summarise(SUM = sum(commonweight_vv_post))
+race_prop <- obama  %>% subset(votedTrump == 1) %>%   group_by(race) %>% summarise(SUM = sum(commonweight_vv_post))
+
+race_prop$SUM <- race_prop$SUM/Total.race_prop$SUM
+```
+
+```{r}
+print(race_prop)
+names(race_prop) = c("Race", "Proportion")
+```
+
+**Party Identification**
+```{r include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, tidy = TRUE, message = FALSE)
+# For pid7
+Total.pid7_prop <- obama  %>%  group_by(pid7) %>% summarise(SUM = sum(commonweight_vv_post))
+pid7_prop <- obama  %>% subset(votedTrump == 1) %>%   group_by(pid7) %>% summarise(SUM = sum(commonweight_vv_post))
+
+pid7_prop$SUM <- pid7_prop$SUM/Total.pid7_prop$SUM
+```
+
+```{r}
+print(pid7_prop)
+names(pid7_prop) = c("Party Identification", "Proportion")
+```
+
+```{r include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, tidy = TRUE, message = FALSE)
+# For attitude towards immigrangts
+Total.attitude_prop <- obama  %>%  group_by(attitude) %>% summarise(SUM = sum(commonweight_vv_post))
+attitude_prop <- obama  %>% subset(votedTrump == 1) %>%   group_by(attitude) %>% summarise(SUM = sum(commonweight_vv_post))
+
+attitude_prop$SUM <- attitude_prop$SUM/Total.attitude_prop$SUM
+```
+
+```{r}
+
+ggplot(aes(x=attitude,y=SUM), data=attitude_prop) + geom_line() +
+  xlab("Attitude Towards Immigrants") + ylab("Weighted Proportion who switched to Trump")
+
+```
+
+##2. Two Predictors##
+```{r echo=FALSE,warning=FALSE}
+#tookpostsurvey=subset(x,x$tookpost=="Yes")
+#voted_Obama=subset(x,x$CC16_326=="Barack Obama")
+#respondent_2016=susbset(x,is.na(x$CC16_410a)==FALSE)
+
+#Taking it together
+
+data_preprocess=subset(x,(x$tookpost=="Yes")&(x$CC16_326=="Barack Obama"))
+#View(data_preprocess)
+respondent_voted_trump=ifelse(data_preprocess$CC16_410a=="Donald Trump (Republican)",1,0)
+respondent_voted_trump[which(is.na(respondent_voted_trump))]=0
+
+grant_status_1=ifelse(data_preprocess$CC16_331_1=="Yes",1,0)
+grant_status_2=ifelse(data_preprocess$CC16_331_2=="Yes",0,1)
+grant_status_3=ifelse(data_preprocess$CC16_331_3=="Yes",1,0)
+grant_status_4=ifelse(data_preprocess$CC16_331_7=="Yes",0,1)
+
+attitude=grant_status_1+grant_status_2+grant_status_3+grant_status_4
+
+racial_categories=ifelse(data_preprocess$race=="White","White",ifelse(data_preprocess$race=="Black","Black",ifelse(data_preprocess$race=="Hispanic","Hispanic","Other")))
+
+obama=data.frame(data_preprocess$commonweight_vv_post,data_preprocess$tookpost,data_preprocess$gender,data_preprocess$educ,data_preprocess$race,data_preprocess$pid7,data_preprocess$CC16_326,data_preprocess$CC16_410a,data_preprocess$CC16_331_1,data_preprocess$CC16_331_2,data_preprocess$CC16_331_3,data_preprocess$CC16_331_7,respondent_voted_trump,attitude,racial_categories)
+
+
+
+#View(obama)
+
+```
+
+
+
+```{r echo=FALSE,warning=FALSE}
+library(ggplot2)
+library(dplyr)
+#Including interactions and No interactions
+
+#1. With No interactions for Gender demographic variable
+gender.logit=glm(respondent_voted_trump~ attitude + data_preprocess.gender,family="binomial",data=obama,weights = obama$data_preprocess.commonweight_vv_post)
+
+gender.df=expand.grid(attitude=0:4,data_preprocess.gender=c("Male","Female"))
+
+gender.nointer.pred=predict(gender.logit,newdata = gender.df,type = "response")
+gender.nointer.pred=as.vector((gender.nointer.pred))
+
+#print(gender.nointer.pred)
+
+#2. With interaction for Gender demographic variable
+gender.logit.inter=glm(respondent_voted_trump~attitude*data_preprocess.gender,family = "binomial",data=obama,weights = obama$data_preprocess.commonweight_vv_post)
+gender.inter.pred=predict(gender.logit.inter,type = "response",newdata = gender.df)
+gender.inter.pred=as.vector((gender.inter.pred))
+
+
+#Forming a new data frame
+
+
+gender.pred.df=data.frame(gender.df,gender.nointer.pred,gender.inter.pred)
+
+
+ggplot(gender.pred.df,aes(x=gender.pred.df$attitude))+geom_line(aes(y=gender.pred.df$gender.nointer.pred,color="No interaction"))+geom_line(aes(y=gender.pred.df$gender.inter.pred,color="with Interaction"))+facet_wrap(~gender.pred.df$data_preprocess.gender)+ylab("Probability to switch to Trump")+xlab("Immigration Attitude")+ggtitle("Interaction of Gender with Immigration attitude")
+
+```
+For the above plots, Gender and immigration attitude interaction we can see that the probabilites to switch to trump predcited by two models(with interaction and without interaction)are same.
+Hence gender does not explain any variations in immigration attitude for male and female.
+
+
+```{r echo=FALSE, warning=FALSE}
+
+#Implementing for race
+
+#1. With No interactions for Race demographic variable
+race.logit=glm(respondent_voted_trump~ attitude + data_preprocess.race,family="binomial",data=obama,weights = obama$data_preprocess.commonweight_vv_post)
+race.df=expand.grid(attitude=0:4,data_preprocess.race=c("White","Black","Hispanic","Other"))
+race.nointer.pred=predict(race.logit,newdata = race.df,type = "response")
+race.nointer.pred=as.vector((race.nointer.pred))
+
+
+
+#2. With interaction for Race demographic variable
+race.logit.inter=glm(respondent_voted_trump~attitude*data_preprocess.race,family = "binomial",data=obama,weights = obama$data_preprocess.commonweight_vv_post)
+race.inter.pred=predict(race.logit.inter,type = "response",newdata = race.df)
+race.inter.pred=as.vector((race.inter.pred))
+
+
+#Forming a new data frame
+
+
+race.pred.df=data.frame(race.df,race.nointer.pred,race.inter.pred)
+
+#Ggplot
+ggplot(race.pred.df,aes(x=race.pred.df$attitude))+geom_line(aes(y=race.pred.df$race.nointer.pred,color="No interaction"))+geom_line(aes(y=race.pred.df$race.inter.pred,color="with Interaction"))+facet_wrap(~race.pred.df$data_preprocess.race)+ylab("Probability to switch to Trump")+xlab("Immigration Attitude")+ggtitle("Interaction of Immigration attitude with Race")
+
+
+```
+from the above plots we can see that there are interactions of race and immigration attitude variables. Some good differences in probabilities can be seen in Hispanic and Other levels of race. For Hispanic considering the most negative response towards immigration attitude, the probability to switch to trump is slightly less for interaction model as compared to no interaction model.
+
+
+```{r echo=FALSE, warning=FALSE}
+#For Education
+#1. With No interactions for Education demographic variable
+
+#Converting quantitative
+obama$data_preprocess.educ= as.numeric(obama$data_preprocess.educ)
+
+educ.logit=glm(respondent_voted_trump~ attitude + data_preprocess.educ,family="binomial",data=obama,weights = obama$data_preprocess.commonweight_vv_post)
+educ.df=expand.grid(attitude=0:4,data_preprocess.educ=c(1,2,3,4,5,6))
+educ.nointer.pred=predict(educ.logit,newdata = educ.df,type = "response")
+educ.nointer.pred=as.vector((educ.nointer.pred))
+
+
+
+#2. With interaction for Education demographic variable
+educ.logit.inter=glm(respondent_voted_trump~attitude*data_preprocess.educ,family = "binomial",data=obama,weights = obama$data_preprocess.commonweight_vv_post)
+educ.inter.pred=predict(educ.logit.inter,type = "response",newdata = educ.df)
+educ.inter.pred=as.vector((educ.inter.pred))
+
+
+#Forming a new data frame
+educ.pred.df=data.frame(educ.df,educ.nointer.pred,educ.inter.pred)
+
+#Ggplot
+ggplot(educ.pred.df,aes(x=educ.pred.df$attitude))+geom_line(aes(y=educ.pred.df$educ.nointer.pred,color="No interaction"))+geom_line(aes(y=educ.pred.df$educ.inter.pred,color="with Interaction"))+facet_wrap(~educ.pred.df$data_preprocess.educ)+ylab("Probability to switch to Trump")+xlab("Immigration Attitude")+ggtitle("Interaction of Immigration attitude with Education")
+
+```
+For 6 levels of education we can see there are some interactions with the immigration attitude.
+Some good interactions are shown by the No high school and post grad level of education.
+No high School:With interaction we get slight lower probabilites as compared to that of no interaction model for most negative response of immigration attitude.
+Post-Grad:With interaction we get slight higher probabilites as compared to that of no interaction model for most negative response of immigration attitude.
+
+
+
+```{r echo=FALSE,warning=FALSE}
+#For party Identification
+
+#1. With No interactions for Party Identification demographic variable
+
+#Converting quantitative
+obama$data_preprocess.pid7=as.numeric(obama$data_preprocess.pid7)
+
+pid.logit=glm(respondent_voted_trump~ attitude + data_preprocess.pid7,family="binomial",data=obama,weights = obama$data_preprocess.commonweight_vv_post)
+pid.df=expand.grid(attitude=0:4,data_preprocess.pid7=c(1,2,3,4,5,6,7,8))
+pid.nointer.pred=predict(pid.logit,newdata = pid.df,type = "response")
+pid.nointer.pred=as.vector((pid.nointer.pred))
+
+
+
+#2. With interaction for Education demographic variable
+pid.logit.inter=glm(respondent_voted_trump~attitude*data_preprocess.pid7,family = "binomial",data=obama,weights = obama$data_preprocess.commonweight_vv_post)
+pid.inter.pred=predict(pid.logit.inter,type = "response",newdata = pid.df)
+pid.inter.pred=as.vector((pid.inter.pred))
+
+
+#Forming a new data frame
+pid.pred.df=data.frame(pid.df,pid.nointer.pred,pid.inter.pred)
+
+#Ggplot
+ggplot(pid.pred.df,aes(x=pid.pred.df$attitude))+geom_line(aes(y=pid.pred.df$pid.nointer.pred,color="No interaction"))+geom_line(aes(y=pid.pred.df$pid.inter.pred,color="with Interaction"))+facet_wrap(~pid.pred.df$data_preprocess.pid)+ylab("Probability to switch to Trump")+xlab("Immigration Attitude")+ggtitle("Interaction of Immigration attitude with party Identification")
+
+```
+From the above plots we can observe that the party Identification does not make any difference in immigration attitude for predicting the probabilities to switch to trump.
+There is no interaction between both the variables hence there is no advantage of considering the party Identification demographic variable.
+
+```{r echo=FALSE,warning=FALSE}
+
+
+obama_hispanic = subset(obama, obama$racial_categories == "Hispanic")
+head(obama_hispanic)
+
+#Only Hispanic
+hispanic.logit=glm(respondent_voted_trump ~ data_preprocess.educ+data_preprocess.pid7+ data_preprocess.gender,family="binomial",data=obama_hispanic,weights = obama_hispanic$data_preprocess.commonweight_vv_post)
+
+educ.df=expand.grid(data_preprocess.educ= c(1,2,2,3,4,4,5,6),data_preprocess.gender=c("Male", "Female", "Male", "Female", "Male", "Female", "Male", "Female"), data_preprocess.pid7=c(1,2,3,4,5,6,7,8))
+educ.pred=predict(hispanic.logit,newdata = educ.df,type = "response")
+educ.pred=as.vector((educ.pred))
+
+educ.pred.df= data.frame(educ.df,educ.pred)
+
+
+ggplot(educ.pred.df,aes(x=educ.pred.df$data_preprocess.educ)) + geom_line(aes(y = educ.pred.df$educ.pred, col = educ.pred.df$data_preprocess.gender)) + facet_wrap(~educ.pred.df$data_preprocess.pid7) + xlab("Education") + ylab("Proportion who switched to Trump") + labs(color = "Gender")
+
+summary(hispanic.logit)$coefficients
+
+#All Races
+
+all.logit=glm(respondent_voted_trump ~ data_preprocess.educ * +data_preprocess.pid7+data_preprocess.gender,family="binomial",data=obama,weights = obama$data_preprocess.commonweight_vv_post)
+
+educ.df=expand.grid(data_preprocess.educ= c(1,2,2,3,4,4,5,6),data_preprocess.gender=c("Male", "Female", "Male", "Female", "Male", "Female", "Male", "Female"), data_preprocess.pid7=c(1,2,3,4,5,6,7,8))
+educ.pred=predict(all.logit,newdata = educ.df,type = "response")
+educ.pred=as.vector((educ.pred))
+
+educ.pred.df= data.frame(educ.df,educ.pred)
+
+
+ggplot(educ.pred.df,aes(x=educ.pred.df$data_preprocess.educ)) + geom_line(aes(y = educ.pred.df$educ.pred, col = educ.pred.df$data_preprocess.gender)) + facet_wrap(~educ.pred.df$racial_categories) + xlab("Education") + ylab("Proportion who switched to Trump") + labs(color = "Gender")
+
+summary(all.logit)$coefficients
+
+```
+```{r echo=FALSE,warning=FALSE}
+
+#Hispanic
+hispanic_immigration_logit = glm(respondent_voted_trump ~ attitude * data_preprocess.educ + data_preprocess.pid7 + data_preprocess.gender, data = obama_hispanic, weights = obama_hispanic$data_preprocess.commonweight_vv_post)
+
+attitude.df = expand.grid(attitude = 0:4, data_preprocess.educ = c(1,2,2,3,4,4,5,6),data_preprocess.gender=c("Male", "Female", "Male", "Female", "Male", "Female", "Male", "Female"), data_preprocess.pid7=c(1,2,3,4,5,6,7,8))
+
+```

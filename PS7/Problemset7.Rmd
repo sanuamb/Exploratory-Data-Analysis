@@ -1,0 +1,201 @@
+---
+title: "Problem Set 7"
+output: pdf_document
+author: Saniya Ambavanekar
+---
+
+
+##1. Fit a (weighted) model or models to the NHANESraw data to predict average systolic blood pressure (BPSysAve) using some combination of Age, Gender, Height, and Weight as explanatories. Briefly justify your modeling choices. Graph your fitted model (including at least one faceted plot) and explain what the plots tell you.##
+
+```{r message =FALSE,echo=FALSE,warning=FALSE,fig.width = 5, fig.height = 4}
+library(NHANES)
+library(GGally)
+library(dplyr)
+library(ggplot2)
+
+Gender=NHANESraw$Gender
+
+Age=NHANESraw$Age
+Height=NHANESraw$Height
+Weight=NHANESraw$Weight
+surveyW=NHANESraw$WTMEC2YR
+sysbp=NHANESraw$BPSysAve
+
+dataset=data.frame(Gender,Age,Height,Weight,surveyW,sysbp)
+dataset=na.omit(dataset)
+
+#Converting gender to quantitative values
+dataset$Gender=recode(dataset$Gender,'male'=1,'female'=0)
+
+ggpairs(dataset[c('sysbp','Gender','Age','Height','Weight')])
+```
+
+From ggpairs, the density plot of BPSysAve it shows it is right skewed, hence some transformation like log will be beneficial. We can also see that height, weight and Age are somewhat strongly correlated as compared to gender. Also height and weight are highly correlated to one another, hence we can choose either of them as our explanatory variable. 
+
+
+
+```{r echo=FALSE, warning=FALSE,fig.width = 5, fig.height = 4}
+Height.cat=rep(NA,nrow(dataset))
+Height.cat[dataset$Height<=quantile(dataset$Height,1/3)]="Short"
+Height.cat[dataset$Height>quantile(dataset$Height,1/3)&dataset$Height<=quantile(dataset$Height,2/3)]="Medium"
+Height.cat[dataset$Height>quantile(dataset$Height,2/3)]='Tall'
+
+Height.cat=factor(Height.cat,levels=c('Short','Medium','Tall'))
+dataset=data.frame(dataset,Height.cat)
+
+ggplot(dataset,aes(x=Age, y=log(sysbp))) + geom_point() + 
+  geom_smooth(method = 'lm', span = 2,
+              se = FALSE) + facet_wrap(~ Height.cat )+
+  ylab('Avg Systolic BP')+xlab('Age')+ggtitle('Avg Systolic BP with respect to Height and Age')
+
+```
+
+From above plot, we can observe the trend is increasing,there is slight change in slopes from short height to tall height for increase in the age. We can get a better picture, how Height and Age affect the change in Avg Systolic BP by fitting a model.
+
+```{r message=FALSE,echo=FALSE,warning=FALSE,fig.width = 5, fig.height = 5}
+dataset$surveyW=(dataset$surveyW*nrow(dataset))/sum(dataset$surveyW)
+
+#With No interaction
+model.lm=lm(log(sysbp)~Age+Height,data=dataset,weights = surveyW)
+
+
+#dataframe
+df=expand.grid(Age=min(dataset$Age):max(dataset$Age),Height=min(dataset$Height):max(dataset$Height))
+df.nointer=predict(model.lm,newdata=df)
+df.nointer=as.vector(df.nointer)
+
+#With inter
+model.lm.inter=lm(log(sysbp)~Age*Height,data=dataset,weights = surveyW)
+df.inter=predict(model.lm.inter,newdata=df)
+df.inter=as.vector(df.inter)
+
+Height.cat=rep(NA,nrow(df))
+Height.cat[df$Height<=quantile(df$Height,1/3)]="Short"
+Height.cat[df$Height>quantile(df$Height,1/3)&df$Height<=quantile(df$Height,2/3)]="Medium"
+Height.cat[df$Height>quantile(df$Height,2/3)]='Tall'
+
+Height.cat=factor(Height.cat,levels=c('Short','Medium','Tall'))
+
+df.pred=data.frame(df,df.nointer,df.inter,Height.cat)
+
+ggplot(df.pred,aes(x=df.pred$Age))+geom_smooth(aes(y=df.pred$df.inter,color='interaction'))+
+  geom_smooth(aes(y=df.pred$df.nointer,color='No interaction'))+facet_wrap(~Height.cat)+ylab('Avg Systolic BP')+xlab('Age')+ggtitle('Avg Systolic BP w.r.t Age and Height')
+
+```
+
+From the above plot, we can observe significant differences in short and tall people and their changes in systolic BP. I will explain for short people where we can see major differences.
+1. Short people with age less than 20 with interaction there is less systolic BP as compared to the one with no interaction.
+2. Also for the short people as the age increases, with interaction the systolic BP increases as compared to that with no interaction.
+We can interpret that there is some relation between Age and Height as both of them affect the systolic BP of the people significantly.
+
+
+##2. The NHANESraw data set also contains a Diabetes variable that states whether the individual has diabetes (with some missing values that you may ignore.) Fit a model or models to the NHANESraw data to predict diabetes status using some combination of Age, Gender, Height, and Weight as explanatories. Briefly justify your modeling choices. Graph your fitted model (including at least one faceted plot) and explain what the plots tell you.##
+
+```{r warning=FALSE,message=FALSE,echo=FALSE,fig.width = 5, fig.height = 5}
+
+age=NHANESraw$Age
+gender=NHANESraw$Gender
+ht=NHANESraw$Height
+wt=NHANESraw$Weight
+diabetes=NHANESraw$Diabetes
+surveywt=NHANESraw$WTMEC2YR
+
+data=data.frame(age,gender,ht,wt,diabetes,surveywt)
+data=na.omit(data)
+
+data$gender=recode(data$gender,'male'=1,'female'=0)
+data$diabetes=recode(data$diabetes,'No'=0,'Yes'=1)
+
+ggpairs(data[c('age','gender','ht','wt','diabetes')])
+
+```
+
+From above ggpairs for diabetes as response variable, we also see that height, weight and age are somewhat strongly correlated to the diabetes. Since it is known that weights play an important role in diabetes, I have considered two explanatory variables age and weight to check its role in diabetes prediction
+
+```{r warning=FALSE,message=FALSE,echo=FALSE,fig.width = 5, fig.height = 5}
+
+diab.nointer.model=glm(diabetes~age+wt,data=data)
+
+diab.df=expand.grid(age=min(data$age):max(data$age),wt=min(data$wt):max(data$wt))
+
+diab.nointer=predict(diab.nointer.model,newdata=diab.df,type = 'response')
+diab.nointer=as.vector(diab.nointer)
+
+diab.inter.model=glm(diabetes~age*wt,data=data)
+
+diab.inter=predict(diab.inter.model,newdata=diab.df,type='response')
+diab.inter=as.vector(diab.inter)
+
+
+wt.cat=rep(NA,nrow(diab.df))
+wt.cat[diab.df$wt<=quantile(diab.df$wt,1/3)]="Light"
+wt.cat[diab.df$wt>quantile(diab.df$wt,1/3)&diab.df$wt<=quantile(diab.df$wt,2/3)]="Medium"
+wt.cat[diab.df$wt>quantile(diab.df$wt,2/3)]='Heavy'
+
+wt.cat=factor(wt.cat,levels=c('Light','Medium','Heavy'))
+
+
+diab.pred.df=data.frame(diab.df,diab.nointer,diab.inter,wt.cat)
+
+ggplot(diab.pred.df,aes(x=diab.pred.df$age))+geom_smooth(aes(y=diab.pred.df$diab.nointer,color='No interaction'))+geom_smooth(aes(y=diab.pred.df$diab.inter,color='Interaction'))+facet_wrap(~wt.cat)+
+  ylab('Probability of getting Diabetes ')+xlab('Age')+ggtitle('Diabetes status w.r.t Age and Height')
+
+```
+
+From above plot, we can see that people who are heavily weighted there is a higher chance of them to get diabetes as the age increases. This is interpreted by the interaction between the age and weight.
+If there is no interaction between age and weight we get three somewhat parallel lines from which we cannot explain much.
+
+
+##Add one more explanatory variable to your model to predict diabetes status. This must be a different variable to the variables chosen by other members of your final project group. Convince us that adding this variable is actually helpful. Graph your fitted model (including at least one faceted plot) and explain what the plots tell you that your plots for question 2 don't.##
+
+```{r warning=FALSE,message=FALSE,echo=FALSE}
+age=NHANESraw$Age
+gender=NHANESraw$Gender
+ht=NHANESraw$Height
+wt=NHANESraw$Weight
+diabetes=NHANESraw$Diabetes
+surveywt=NHANESraw$WTMEC2YR
+depressed=NHANESraw$Depressed
+
+data3=data.frame(age,gender,ht,wt,diabetes,surveywt,depressed)
+data3$gender=recode(data3$gender,'male'=1,'female'=0)
+data3$diabetes=recode(data3$diabetes,'Yes'=1,'No'=0)
+#data3$alcohol=recode(data3$alcohol,'Yes'=1,'No'=0)
+data3=na.omit(data3)
+```
+
+
+```{r warning=FALSE,message=FALSE,echo=FALSE,fig.width = 5, fig.height = 5}
+
+al.nointer.model=glm(diabetes~age+wt+depressed,data=data3)
+
+al.df=expand.grid(age=min(data3$age):max(data3$age),wt=min(data3$wt):max(data3$wt),depressed=c('None','Several','Most'))
+
+al.nointer=predict(al.nointer.model,newdata=al.df,type = 'response')
+al.nointer=as.vector(al.nointer)
+
+al.inter.model=glm(diabetes~age*wt*depressed,data=data3)
+
+al.inter=predict(al.inter.model,newdata=al.df,type='response')
+al.inter=as.vector(al.inter)
+
+wt.cat=rep(NA,nrow(al.df))
+wt.cat[al.df$wt<=quantile(al.df$wt,1/3)]="Light"
+wt.cat[al.df$wt>quantile(al.df$wt,1/3)&al.df$wt<=quantile(al.df$wt,2/3)]="Medium"
+wt.cat[al.df$wt>quantile(al.df$wt,2/3)]='Heavy'
+
+wt.cat=factor(wt.cat,levels=c('Light','Medium','Heavy'))
+
+
+al.pred.df=data.frame(al.df,al.nointer,al.inter,wt.cat)
+
+ggplot(al.pred.df,aes(x=al.pred.df$age))+geom_smooth(aes(y=al.pred.df$al.nointer,color='No interaction'))+geom_smooth(aes(y=al.pred.df$al.inter,color='Interaction'))+facet_wrap(~al.pred.df$wt.cat+(al.pred.df$depressed))+ylab('Probability of getting Diabetes ')+xlab('Age')+ggtitle('Diabetes status w.r.t Age, Weight and Depression')
+
+```
+
+Depression plays a role in getting diabetes. But we need to check if weight and depression are correlated or not. 
+Depression has three levels None: Not depressed
+Several: Depressed for some days
+Most: Most of Days of year depressed
+From the above plots, we can observe that most depressed people irrespective of their weights have higher chances of getting diabetes as the age increases. 
+

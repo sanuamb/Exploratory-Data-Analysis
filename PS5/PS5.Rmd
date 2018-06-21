@@ -1,0 +1,75 @@
+---
+title: "PS5_2"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+
+```{r}
+library(GGally)
+library(ggplot2)
+```
+
+## Q1
+
+```{r}
+rust = read.table("rustdrugs2016.txt",header = T )
+rust$deathrate = rust$Deaths/(rust$Population/100000)
+rust1 = data.frame(deathrate = rust$deathrate, pblack = rust$PctBlack, trump = rust$Trump, income=rust$Income)
+ggpairs(rust1)
+
+```
+
+##Q2
+
+#One way Faceting for proportion of votes that went to trump in 2016
+```{r warning=FALSE}
+deathrate=log(rust$deathrate)
+income_per_thousand=(rust$Income/1000)
+trump_effect=rust$Trump
+trump.cat=rep(NA,nrow(rust))
+trump.cat[trump_effect<=quantile(trump_effect,1/3)]="Low"
+trump.cat[trump_effect>quantile(trump_effect,1/3) & trump_effect<=quantile(trump_effect,2/3)]="Medium"
+trump.cat[trump_effect>quantile(trump_effect,2/3)]="High"
+trump.cat=factor(trump.cat,levels=c("Low","Medium","High"))
+one=data.frame(deathrate,income_per_thousand,trump.cat)
+
+ggplot(one,aes(x=one$income_per_thousand,y=one$deathrate))+geom_point()+geom_smooth(method="lm",span=1,method.args=list(degree=1,family="symmetric"),se=FALSE)+facet_wrap(~one$trump.cat)+
+  xlab("Income per thousand dollars")+ylab("Deathrate")+ggtitle("One way Facet (Trump and Income )")
+  
+```
+From the above one way faceted plot we can observe that there is change in slope for each interaction of percentage of votes given to trump and Income. Hence it looks like there is an interaction present between the two. As we can see that the slope is decreasing in each facet that is deathrate decreases as income increases, a steep slope is observed within High percentage of votes given to trump facet.
+
+##Two way faceting 
+```{r warning=FALSE}
+death_rate=log(rust$deathrate)
+income_per_thousand=(rust$Income/1000)
+trump_effect=rust$Trump
+Black_Pop=log(rust$PctBlack)
+
+trump.cat=rep(NA,nrow(rust))
+trump.cat[trump_effect<=quantile(trump_effect,1/3)]="Low"
+trump.cat[trump_effect>quantile(trump_effect,1/3) & trump_effect<=quantile(trump_effect,2/3)]="Medium"
+trump.cat[trump_effect>quantile(trump_effect,2/3)]="High"
+trump.cat=factor(trump.cat,levels=c("Low","Medium","High"))
+
+income.cat=rep(NA,nrow(rust))
+income.cat[income_per_thousand<=quantile(income_per_thousand,1/3)]="Low Income"
+income.cat[income_per_thousand>quantile(income_per_thousand,1/3) & income_per_thousand<=quantile(income_per_thousand,2/3)]="Medium Income"
+income.cat[income_per_thousand>quantile(income_per_thousand,2/3)]="High Income"
+income.cat=factor(income.cat,levels=c("Low Income", "Medium Income", "High Income"))
+
+
+two=data.frame(death_rate,Black_Pop,trump.cat,income.cat)
+ggplot(two,aes(x=two$Black_Pop,y=two$death_rate))+geom_point()+geom_smooth(method="lm",span=1,method.args=list(degree=1,family="symmetric"),se=FALSE)+facet_wrap(~two$income.cat+two$trump.cat)+xlab("Percentage of Black Population")+ylab("Deathrate")+ggtitle("Two-way faceting (Income and Trump)")
+```
+From the above graph we can observe that there is change in slope for every facet hence there is mixture of results/observations we get:
+1.With Low Income and Variation in percentage of votes given to trump(Low, Medium, High): The deathrate of black population tends to decrease.
+2.With Medium Income and Variation in percentage of votes given to trump(Low, Medium, High): The deathrate of black population tends to remain constant
+3.With High Income and Variation in percentage of votes given to trump(Low, Medium, High): The deathrate of black population tends to increase.
